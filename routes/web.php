@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\DashBoardController;
+use App\Http\Controllers\ProductCategoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -10,8 +12,10 @@ Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
-])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+])->prefix('dashboard')->as('dashboard.')->group(function () {
+    Route::get('/', [DashBoardController::class, 'index'])->name('index');
+
+    Route::middleware(['admin'])->group(function () {
+        Route::resource('category', ProductCategoryController::class);
+    });
 });

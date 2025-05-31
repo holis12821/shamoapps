@@ -9,6 +9,24 @@ export default {
         './vendor/laravel/jetstream/**/*.blade.php',
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
+        './resources/js/**/*.js',          // add this
+        './resources/js/**/*.vue',         // if using Vue
+        './resources/**/*.html',
+    ],
+
+    safelist: [
+        'border-gray-700',
+        'bg-gray-700',
+        'bg-gray-800',
+        'bg-red-500',
+        'text-white',
+        'hover:bg-red-600',
+        'hover:bg-gray-800',
+        'hover:bg-gray-900',
+        'rounded-md',
+        'px-2',
+        'py-1',
+        'm-1',
     ],
 
     theme: {

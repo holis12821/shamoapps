@@ -21,7 +21,7 @@
     <!-- Styles -->
     <style>
         /* Form Fields*/
-        */ .dataTables_wrapper select,
+        .dataTables_wrapper select,
         .dataTables_wrapper .dataTables_filter input {
             color: #4a5568;
             /*text-gray-700*/
@@ -132,7 +132,7 @@
 
     @livewireScripts
 
-    {{ $script ?? '' }}
+    @stack('script') <!-- Use this to load dynamic scripts -->
     
 </body>
 
