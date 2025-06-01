@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\TransactionRequest;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
-use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
 class TransactionController extends Controller

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProductGalleryRequest;
 use App\Models\Product;
 use App\Models\ProductGallery;
-use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
 class ProductGalleryController extends Controller
