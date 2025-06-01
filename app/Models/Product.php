@@ -23,11 +23,15 @@ class Product extends Model
         'tags'
     ];
 
+    protected $casts = [
+        'price' => 'integer',
+    ];
+
     public function galleries()
     {
-        return $this->hasMany(ProductGallery::class, 'product_id', 'id');
+        return $this->hasMany(ProductGallery::class, 'products_id', 'id');
     }
-    
+
     public function category()
     {
         return $this->belongsTo(ProductCategory::class, 'categories_id', 'id');

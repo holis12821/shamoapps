@@ -42,7 +42,7 @@ class ProductCategoryController extends Controller
      */
     public function create()
     {
-        //
+        return view('pages.dashboard.category.create');
     }
 
     /**
@@ -50,7 +50,15 @@ class ProductCategoryController extends Controller
      */
     public function store(ProductCategoryRequest $request)
     {
-        //
+        //store data
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $data = $request->all();
+        ProductCategory::create($data);
+
+        return redirect()->route('dashboard.category.index')->with('success', 'Kategori produk berhasil ditambahkan.');
     }
 
     /**
@@ -66,7 +74,10 @@ class ProductCategoryController extends Controller
      */
     public function edit(ProductCategory $category)
     {
-        //
+        // Edit data
+        return view('pages.dashboard.category.edit', [
+            'item' => $category,
+        ]);
     }
 
     /**
@@ -74,7 +85,11 @@ class ProductCategoryController extends Controller
      */
     public function update(ProductCategoryRequest $request, ProductCategory $category)
     {
-        //
+        // Update data
+        $data = $request->all();
+        $category->update($data);
+
+        return redirect()->route('dashboard.category.index')->with('success', 'Kategori produk berhasil diperbarui.');
     }
 
     /**
@@ -82,6 +97,9 @@ class ProductCategoryController extends Controller
      */
     public function destroy(ProductCategory $category)
     {
-        //
+        // Delete data
+        $category->delete();
+
+        return redirect()->route('dashboard.category.index')->with('success', 'Kategori produk berhasil dihapus.');
     }
 }

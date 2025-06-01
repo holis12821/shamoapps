@@ -15,6 +15,8 @@ export default {
     ],
 
     safelist: [
+        'bg-blue-700',
+        'border-blue-700',
         'border-gray-700',
         'bg-gray-700',
         'bg-gray-800',
@@ -23,6 +25,7 @@ export default {
         'hover:bg-red-600',
         'hover:bg-gray-800',
         'hover:bg-gray-900',
+        'hover:bg-blue-800',
         'rounded-md',
         'px-2',
         'py-1',

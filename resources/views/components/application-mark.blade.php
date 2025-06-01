@@ -1,3 +1,3 @@
-<img src="/logo.svg" alt="Logo"
+<img src="/nike-logo.svg" alt="Logo"
   style="height: 30px; "
 />
