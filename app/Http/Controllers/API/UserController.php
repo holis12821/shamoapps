@@ -113,9 +113,9 @@ class UserController extends Controller
     {
         // Validate input fields
         $validateData = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'username' => ['sometimes', 'string', 'max:15', Rule::unique('users')->ignore(Auth::id())],
-            'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore(Auth::id())],
+            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:15', Rule::unique('users')->ignore(Auth::id())],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore(Auth::id())],
         ]);
 
         // Get current the authenticated user
