@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Email;
 use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
@@ -137,11 +136,11 @@ class UserController extends Controller
         return ResponseFormatter::success($request->user(), 'Data profile user berhasil diambil');
     }
 
-    public function logout(Request $request) 
+    public function logout(Request $request)
     {
         try {
             // Revoke the user's token
-           $token = $request->user()->currentAccessToken()->delete();
+            $token = $request->user()->currentAccessToken()->delete();
 
             return ResponseFormatter::success($token, 'User successfully logged out');
         } catch (Exception $e) {
