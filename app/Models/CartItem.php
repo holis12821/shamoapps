@@ -5,22 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class TransactionItem extends Model
+class CartItem extends Model
 {
     use HasFactory;
 
-    /*
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
-        'users_id',
-        'products_id',
-        'transactions_id',
+        'cart_id',
+        'product_id',
         'product_name',
         'price',
-        'quantity'
+        'quantity',
     ];
 
     protected $casts = [
@@ -32,20 +26,25 @@ class TransactionItem extends Model
      | Relationships
      |============================ */
 
-    public function product()
+    public function cart()
     {
-        return $this->belongsTo(Product::class, 'products_id');
+        return $this->belongsTo(Cart::class, 'cart_id', 'id');
     }
 
-    public function transaction()
+    /**
+     * Optional:
+     * If you want a relationship to Product
+     * (not used to calculate prices!)
+     */
+    public function product()
     {
-        return $this->belongsTo(Transaction::class, 'transactions_id');
+        return $this->belongsTo(Product::class, 'product_id', 'id');
     }
 
     /* ============================
      | Helpers
      |============================ */
-     
+
      public function subtotal(): float
      {
          return $this->price * $this->quantity;

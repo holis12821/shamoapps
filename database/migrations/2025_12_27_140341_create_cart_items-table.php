@@ -11,32 +11,42 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('transaction_items', function (Blueprint $table) {
+        Schema::create('cart_items', function (Blueprint $table) {
             $table->id();
 
             /**
-             * transactions_id
+             * cart_id
              * -----------------------------------
-             * Relation to transactions
+             * Relation to carts
+             * If cart is deleted → item is also deleted
              */
 
-            $table->foreignId('transactions_id')
-                ->constrained('transactions')
+            $table->foreignId('cart_id')
+                ->constrained('carts')
                 ->cascadeOnDelete();
 
-            $table->bigInteger('users_id');
-            
+            /**
+             * product_id
+             * -----------------------------------
+             * Id Product ID (FK to products if any)
+             */
+            $table->unsignedBigInteger('product_id');
+
             /**
              * Snapshot product
              * -----------------------------------
-             * FINAL — must not be changed
+             * So that the cart does not change even if the product is updated
              */
-            $table->unsignedBigInteger('products_id');
             $table->string('product_name');
             $table->decimal('price', 12, 2);
             $table->unsignedInteger('quantity');
 
             $table->timestamps();
+
+            /**
+             * One product can only be added to the cart once.
+             */
+            $table->unique(['cart_id', 'product_id']);
         });
     }
 
@@ -45,6 +55,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('transaction_items');
+        Schema::dropIfExists('cart_items');
     }
 };

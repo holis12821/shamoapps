@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\ProductCategoryController;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\TransactionController;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 | Auth API
 |--------------------------------------------------------------------------
 */
+
 Route::prefix('auth')
     ->controller(AuthController::class)
     ->group(function () {
@@ -23,7 +25,7 @@ Route::prefix('auth')
 
         Route::post('logout', 'logout')
             ->middleware(['auth:sanctum', 'abilities:private']);
-});
+    });
 
 /*
 |--------------------------------------------------------------------------
@@ -46,4 +48,49 @@ Route::middleware(['auth:sanctum', 'abilities:private'])->group(function () {
 
     Route::get('transactions', [TransactionController::class, 'all']);
     Route::post('checkout', [TransactionController::class, 'checkout']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Cart API
+|--------------------------------------------------------------------------
+*/
+/**
+ * Create cart (anonymous)
+ * No middleware
+ */
+
+Route::prefix('cart')->group(function () {
+    Route::post('/', [CartController::class, 'create']);
+
+    /**
+     * Read cart
+     * Header: X-CART-ID
+     */
+    Route::middleware('resolvecart')->get('/', [CartController::class, 'show']);
+
+    /**
+     * Cart item operations
+     * Header: X-CART-ID
+     */
+
+    Route::middleware('resolvecart')->group(function () {
+        Route::post('/items', [CartController::class, 'addItem']);
+        Route::put('/items/{item}', [CartController::class, 'updateItem']);
+        Route::delete('/items/{item}', [CartController::class, 'removeItem']);
+    });
+
+    /**
+     * Sensitive operations
+     * Header:
+     * - X-CART-ID
+     * - X-CART-SECRET
+     */
+    Route::middleware([
+        'resolvecart',
+        'requirecartsecret'
+    ])->group(function () {
+        Route::post('/claim', [CartController::class, 'claim']);
+        Route::post('/checkout', [CartController::class, 'checkout']);
+    });
 });

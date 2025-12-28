@@ -17,6 +17,7 @@ class Transaction extends Model
      */
     protected $fillable = [
         'users_id',
+        'cart_id',
         'address',
         'payment',
         'total_price',
@@ -24,13 +25,36 @@ class Transaction extends Model
         'status'
     ];
 
+    protected $casts = [
+        'total_price' => 'decimal:2',
+        "shipping_price" => 'decimal:2',
+    ];
+
+    /* ============================
+     | Relationships
+     |============================ */
+
     public function user()
     {
         return $this->belongsTo(User::class, 'users_id', 'id');
+    }
+
+    public function cart()
+    {
+        return $this->belongsTo(Cart::class, 'cart_id', 'id');
     }
 
     public function items()
     {
         return $this->hasMany(TransactionItem::class, 'transactions_id', 'id');
     }
+
+
+    /* ============================
+     | Helpers
+     |============================ */
+     public function isPaid(): bool
+     {
+         return $this->status === 'PAID';
+     }
 }
