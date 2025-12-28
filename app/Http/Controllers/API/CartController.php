@@ -37,12 +37,12 @@ class CartController extends Controller
     ) {
         $service->add(
             $request->get('cart'),
-            $request->validate()
+            $request->validated()
         );
 
         return ResponseFormatter::success(
             null,
-            'Item added to cart successfully'
+            'Add item to cart successfully'
         );
     }
 
@@ -65,17 +65,13 @@ class CartController extends Controller
 
     public function removeItem(
         Request $request,
-        CartItem $item
+        CartItem $item,
+        CartItemService $service,
     ) {
-        if ($item->cart_id !== $request->get('cart')->id) {
-            return ResponseFormatter::error(
-                null,
-                'Unauthorized item access',
-                403
-            );
-        }
-
-        $item->delete();
+        $service->remove(
+            $request->get('cart'),
+            $item
+        );
 
         return ResponseFormatter::success(
             null,

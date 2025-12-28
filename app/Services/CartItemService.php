@@ -18,10 +18,11 @@ class CartItemService
 
         CartItem::updateOrCreate(
             [
-                'carts_id' => $cart->id,
-                'products_id' => $product->id,
+                'cart_id' => $cart->id,
+                'product_id' => $product->id,
             ],
             [
+                'product_id' => $product->id,
                 'product_name' => $product->name,
                 'price' => $product->price,
                 'quantity' => DB::raw('quantity + ' . (int) $data['quantity']),
@@ -42,5 +43,17 @@ class CartItemService
         $item->update([
             'quantity' => $quantity,
         ]);
+    }
+
+    /**
+     * Remove cart item
+     */
+    public function remove(Cart $cart, CartItem $item): void
+    {
+        if ($item->cart_id !== $cart->id) {
+            throw new ApiException('Unauthorized item', 403);
+        }
+
+        $item->delete();
     }
 }
