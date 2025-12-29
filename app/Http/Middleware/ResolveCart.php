@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Helpers\ResponseFormatter;
+use App\Exceptions\ApiException;
 use App\Models\Cart;
 use Closure;
 
@@ -17,43 +17,27 @@ class ResolveCart
         $cartId = $request->header('X-CART-ID');
 
         if (!$cartId) {
-            return ResponseFormatter::error(
-                null,
-                'Cart ID header missing',
-                400
-            );
+            throw new ApiException('Cart ID header missing', 400);
         }
 
         $cart = Cart::where('public_id', $cartId)->first();
 
         if (!$cart) {
-            return ResponseFormatter::error(
-                null,
-                'Cart not found',
-                404
-            );
+            throw new ApiException('Cart not found', 404);
         }
 
         /**
          * Cart status validation
          */
         if (!$cart->isActive()) {
-            return ResponseFormatter::error(
-                null,
-                'Cart is not active',
-                403
-            );
+            throw new ApiException('Cart is not active', 403);
         }
 
         /**
          * Expiry validation
          */
         if ($cart->isExpired()) {
-            return ResponseFormatter::error(
-                null,
-                'Cart expired',
-                403
-            );
+            throw new ApiException('Cart expired', 403);
         }
 
         /**

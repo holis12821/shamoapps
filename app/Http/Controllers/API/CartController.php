@@ -17,26 +17,55 @@ use App\Models\CartItem;
 
 class CartController extends Controller
 {
-    public function create(CartService $service)
+    public function create(Request $request, CartService $service)
     {
-        $payload = $service->create();
+        // user can be null for guest cart
+        $user = $request->user();
 
-        return ResponseFormatter::success($payload, 'Cart created successfully');
+        $payload = $service->create($user);
+
+        return ResponseFormatter::success(
+            $payload,
+            'Cart created successfully'
+        );
     }
 
     public function show(Request $request)
     {
-        $cart = $request->get('cart')->load('items');
+        $cart = $request->get('cart');
 
-        return ResponseFormatter::success($cart, 'Cart retrieved successfully');
+        if (!$cart) {
+            return ResponseFormatter::error(
+                null,
+                'Cart not found',
+                404
+            );
+        }
+
+        $cart->load('items');
+
+        return ResponseFormatter::success(
+            $cart,
+            'Cart retrieved successfully'
+        );
     }
 
     public function addItem(
         AddCartItemRequest $request,
         CartItemService $service
     ) {
+        $cart = $request->get('cart');
+
+        if (!$cart) {
+            return ResponseFormatter::error(
+                null,
+                'Cart not found',
+                404
+            );
+        }
+
         $service->add(
-            $request->get('cart'),
+            $cart,
             $request->validated()
         );
 
@@ -51,8 +80,18 @@ class CartController extends Controller
         CartItem $item,
         CartItemService $service,
     ) {
+        $cart = $request->get('cart');
+
+        if (!$cart) {
+            return ResponseFormatter::error(
+                null,
+                'Cart not found',
+                404
+            );
+        }
+
         $service->update(
-            $request->get('cart'),
+            $cart,
             $item,
             $request->validated()['quantity']
         );
@@ -68,8 +107,18 @@ class CartController extends Controller
         CartItem $item,
         CartItemService $service,
     ) {
+        $cart = $request->get('cart');
+
+        if (!$cart) {
+            return ResponseFormatter::error(
+                null,
+                'Cart not found',
+                404
+            );
+        }
+
         $service->remove(
-            $request->get('cart'),
+            $cart,
             $item
         );
 
@@ -83,7 +132,10 @@ class CartController extends Controller
         Request $request,
         CartMergeService $service
     ) {
-        if (!$request->user()) {
+        $user = $request->user();
+        $cart = $request->get('cart');
+
+        if (!$user) {
             return ResponseFormatter::error(
                 null,
                 'Unauthorized',
@@ -91,9 +143,17 @@ class CartController extends Controller
             );
         }
 
+        if (!$cart) {
+            return ResponseFormatter::error(
+                null,
+                'Cart not found',
+                404
+            );
+        }
+
         $service->merge(
-            $request->get('cart'),
-            $request->user()
+            $cart,
+            $user
         );
 
         return ResponseFormatter::success(

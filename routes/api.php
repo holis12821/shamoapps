@@ -61,7 +61,8 @@ Route::middleware(['auth:sanctum', 'abilities:private'])->group(function () {
  */
 
 Route::prefix('cart')->group(function () {
-    Route::post('/', [CartController::class, 'create']);
+    Route::post('/', [CartController::class, 'create'])
+        ->middleware('throttle:30,1');
 
     /**
      * Read cart
@@ -87,6 +88,8 @@ Route::prefix('cart')->group(function () {
      * - X-CART-SECRET
      */
     Route::middleware([
+        'auth:sanctum',
+        'abilities:private',
         'resolvecart',
         'requirecartsecret'
     ])->group(function () {
