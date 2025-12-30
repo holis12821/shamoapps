@@ -11,61 +11,40 @@ class ProductController extends Controller
 {
     public function all(Request $request)
     {
-        $id = $request->input('id');
-        $limit = $request->input('limit', 6);
-        $name = $request->input('id');
-        $description = $request->input('description');
-        $tags = $request->input('tags');
-        $categories = $request->input('categories');
-        $price_from = $request->input('price_from');
-        $price_to = $request->input('price_to');
+        $limit = (int) $request->query('limit', 6);
 
-        if ($id) //check if id is provided on query params
-        {
-            $product = Product::with(['category', 'galleries'])->find($id);
+        $products = Product::with(['category', 'galleries'])
+            ->when($request->query('name'), function ($q, $name) {
+                $q->where('name', 'like', "%{$name}%");
+            })
+            ->when($request->query('description'), function ($q, $description) {
+                $q->where('description', 'like', "%{$description}%");
+            })
+            ->when($request->query('tags'), function ($q, $tags) {
+                $q->where('tags', 'like', "%{$tags}%");
+            })
+            ->when($request->query('categories'), function ($q, $categoryId) {
+                $q->where('categories_id', $categoryId);
+            })
+            ->when($request->query('price_from'), function ($q, $priceFrom) {
+                $q->where('price', '>=', $priceFrom);
+            })
+            ->when($request->query('price_to'), function ($q, $priceTo) {
+                $q->where('price', '<=', $priceTo);
+            })
+            ->orderBy('id', 'desc')
+            ->paginate($limit)
+            ->withQueryString();
 
-            if ($product) { // if product found
-                return ResponseFormatter::success(
-                    $product,
-                    'Data product berhasil diambil'
-                );
-            } else {
-                return ResponseFormatter::error(
-                    null,
-                    'Data product tidak ada',
-                    404
-                );
-            }
-        }
-        $product = Product::with(['category', 'galleries']);
-
-        if ($name) {
-            $product->where('name', 'like', '%' . $name . '%');
-        }
-
-        if ($description) {
-            $product->where('description', 'like', '%' . $description . '%');
-        }
-
-        if ($tags) {
-            $product->where('tags', 'like', '%' . $tags . '%');
-        }
-
-        if ($categories) {
-            $product->where('category_id', $categories);
-        }
-
-        if ($price_from) {
-            $product->where('price', '>=', $price_from);
-        }
-
-        if ($price_to) {
-            $product->where('price', '<=', $price_to);
-        }
-
-        return ResponseFormatter::success(
-            $product->paginate($limit),
-            'Data list product berhasil diambil'
-        );
+        return ResponseFormatter::success([
+            'items' => $products->items(),
+            'pagination' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+                'has_more' => $products->hasMorePages(),
+            ]
+        ], 'Product List retrieved successfully');
     }
 }

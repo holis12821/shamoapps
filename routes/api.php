@@ -5,6 +5,7 @@ use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\CheckoutController;
 use App\Http\Controllers\API\ProductCategoryController;
 use App\Http\Controllers\API\ProductController;
+use App\Http\Controllers\API\ProductDetailController;
 use App\Http\Controllers\API\RefreshTokenController;
 use App\Http\Controllers\API\TransactionController;
 use App\Http\Controllers\API\UserController;
@@ -22,7 +23,7 @@ Route::prefix('auth')
         Route::post('/register', 'register')->middleware('throttle:5,1');
         Route::post('/login', 'login')->middleware('throttle:5,1');
         Route::post('/logout', 'logout')
-            ->middleware(['auth:sanctum', 'abilities:private']);
+            ->middleware(['auth:sanctum', 'fingerprint']);
     });
 
 Route::middleware(['auth:sanctum', 'throttle:10,1'])
@@ -33,8 +34,13 @@ Route::middleware(['auth:sanctum', 'throttle:10,1'])
 | Public API
 |--------------------------------------------------------------------------
 */
+
+Route::prefix('product')->group(function () {
+    Route::get('/products', [ProductController::class, 'all'])->middleware('throttle:60,1');
+    Route::get('/products/{id}', [ProductDetailController::class, 'show'])->middleware('throttle:60,1');
+});
+
 Route::middleware('throttle:60,1')->group(function () {
-    Route::get('products', [ProductController::class, 'all']);
     Route::get('categories', [ProductCategoryController::class, 'all']);
 });
 
@@ -43,7 +49,7 @@ Route::middleware('throttle:60,1')->group(function () {
 | Private API
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:private'])->group(function () {
+Route::middleware(['auth:sanctum', 'fingerprint'])->group(function () {
     Route::get('user', [UserController::class, 'fetch']);
     Route::post('user', [UserController::class, 'updateProfile']);
 });
@@ -51,7 +57,7 @@ Route::middleware(['auth:sanctum', 'abilities:private'])->group(function () {
 
 Route::prefix('order')->middleware([
     'auth:sanctum',
-    'abilities:private',
+    'fingerprint',
     'resolvecart',
     'requirecartsecret'
 ])->group(function () {
@@ -60,7 +66,7 @@ Route::prefix('order')->middleware([
 
 Route::prefix('transactions')->middleware([
     'auth:sanctum',
-    'abilities:private',
+    'fingerprint',
 ])->group(function () {
     Route::get('/', [TransactionController::class, 'all']);
 });
@@ -104,7 +110,7 @@ Route::prefix('cart')->group(function () {
      */
     Route::middleware([
         'auth:sanctum',
-        'abilities:private',
+        'fingerprint',
         'resolvecart',
         'requirecartsecret'
     ])->group(function () {
