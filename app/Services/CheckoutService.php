@@ -53,7 +53,7 @@ class CheckoutService
                 TransactionItem::create([
                     'transactions_id' => $transaction->id,
                     'users_id' => $user->id,
-                    'product_id' => $item->product_id,
+                    'products_id' => $item->product_id,
                     'product_name' => $item->product_name,
                     'price' => $item->price,
                     'quantity' => $item->quantity,
@@ -62,7 +62,7 @@ class CheckoutService
 
             $cart->update([
                 'status' => 'checked_out',
-                'secret_key' => null,
+                'secret_key' => '',
             ]);
 
             return $transaction;

@@ -18,9 +18,36 @@ class CartItem extends Model
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
         'quantity' => 'integer',
     ];
+
+    protected $appends = [
+        'subtotal',
+        'formatted'
+    ];
+
+    /* ============================
+     | Accessors
+     |============================ */
+
+    public function getSubtotalAttribute(): float
+    {
+        return (float) $this->price * $this->quantity;
+    }
+
+    public function getFormattedAttribute(): array
+    {
+        return [
+            'price' => $this->rupiah($this->price),
+            'subtotal' => $this->rupiah($this->subtotal),
+        ];
+    }
+
+    private function rupiah($amount): string
+    {
+        return 'Rp ' . number_format($amount, 0, ',', '.');
+    }
+
 
     /* ============================
      | Relationships

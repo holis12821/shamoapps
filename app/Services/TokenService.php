@@ -17,19 +17,41 @@ class TokenService
         );
     }
 
-    public static function createToken(
+    /**
+     * Access Token
+     * - Short lived
+     * - Fingerprinted
+     */
+    public static function createAccessToken(
         User $user,
-        string $name,
-        array $abilities,
         Request $request,
+        int $minutes = 15
+    ): string {
+        return $user->createToken(
+            name: 'access-token',
+            abilities: [
+                'type' => 'access',
+                'fp' => self::fingerprint($request),
+            ],
+            expiresAt: now()->addMinutes($minutes)
+        )->plainTextToken;
+    }
+
+    /**
+     * Refresh Token
+     * - Long lived
+     * - Not fingerprinted
+     */
+    public static function createRefreshToken(
+        User $user,
         int $days = 30
     ): string {
-        $abilities['fp'] = self::fingerprint($request);
-
         return $user->createToken(
-            name: $name,
-            abilities: $abilities,
+            name: 'refresh-token',
+            abilities: [
+                'type' => 'refresh',
+            ],
             expiresAt: now()->addDays($days)
-        )->plainTextToken;
+        )->plainTextToken;  
     }
 }

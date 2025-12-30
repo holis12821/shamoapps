@@ -24,7 +24,7 @@ class RequireCartSecret
         }
 
         if (!$cart || !$cart->secret_key) {
-            throw new ApiException('Cart secret not available', 403);
+            throw new ApiException('Cart already finalized', 403);
         }
 
         if (!hash_equals($cart->secret_key, $secret)) {

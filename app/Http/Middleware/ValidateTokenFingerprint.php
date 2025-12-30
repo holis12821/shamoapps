@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use App\Helpers\ResponseFormatter;
+use App\Services\TokenService;
 
 class ValidateTokenFingerprint
 {
@@ -15,23 +17,59 @@ class ValidateTokenFingerprint
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $token = $request->user()?->currentAccessToken();
-        
-        if (!$token || !isset($token->abilities['fp'])) {
-            return response()->json(['message' => 'Invalid token'], 401);
+        $user = $request->user();
+        $token = $user?->currentAccessToken();
+
+        if (!$user || !$token) {
+            return ResponseFormatter::error(
+                null,
+                'Unauthenticated',
+                401
+            );
         }
 
-        $current = hash(
-            'sha256',
-            $request->ip()
-                . '|' . $request->userAgent()
-                . '|' . config('app.key')
-        );
+        $type = $token->abilities['type'] ?? null;
 
-        if (!hash_equals($token->abilities['fp'], $current)) {
-            $token->delete(); // revoke immediately
-            return response()->json(['message' => 'Token hijacked'], 401);
+        // Tokens without a type are considered invalid.
+        if (!in_array($type, ['access', 'refresh'], true)) {
+            return ResponseFormatter::error(
+                null,
+                'Invalid token type',
+                401
+            );
         }
+
+        /**
+         * Access token: fingerprint validation (anti-hijack)
+         */
+        if ($type === 'access') {
+
+            if (!isset($token->abilities['fp'])) {
+                return ResponseFormatter::error(
+                    null,
+                    'Invalid access token',
+                    401
+                );
+            }
+
+            $currentFingerprint = TokenService::fingerprint($request);
+
+            if (!hash_equals($token->abilities['fp'], $currentFingerprint)) {
+                $token->delete(); // revoke immediately
+
+                return ResponseFormatter::error(
+                    null,
+                    'Token hijacked',
+                    401
+                );
+            }
+        }
+
+        /**
+         * Refresh token:
+         * - NO fingerprint check
+         * - Only type validation
+         */
 
         return $next($request);
     }

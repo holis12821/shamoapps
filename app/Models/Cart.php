@@ -23,6 +23,37 @@ class Cart extends Model
         'expires_at' => 'datetime',
     ];
 
+    protected $appends = [
+        'total_amount',
+        'formatted'
+    ];
+
+    /* ============================
+     | Accessors
+     |============================ */
+
+    public function getTotalAmountAttribute(): float
+    {
+        return $this->items->sum(
+            fn($item) => $item->price * $item->quantity
+        );
+    }
+
+    /**
+     * Formatted values for API
+     */
+    public function getFormattedAttribute(): array
+    {
+        return [
+            'total_amount' => $this->rupiah($this->total_amount),
+        ];
+    }
+
+    private function rupiah($amount): string
+    {
+        return 'Rp ' . number_format($amount, 0, ',', '.');
+    }
+
     /* ============================
      | Relationships
      |============================ */
@@ -41,35 +72,30 @@ class Cart extends Model
      | Business Helpers
      |============================ */
 
-     public function isExpired(): bool
-     {
-         return $this->expires_at instanceof Carbon && $this->expires_at->isPast();
-     }
+    public function isExpired(): bool
+    {
+        return $this->expires_at instanceof Carbon && $this->expires_at->isPast();
+    }
 
-     public function isActive(): bool
-     {
-         return $this->status === 'active' && !$this->isExpired();
-     }
+    public function isActive(): bool
+    {
+        return $this->status === 'active' && !$this->isExpired();
+    }
 
-     public function isCheckedOut(): bool
-     {
-         return $this->status === 'checked_out';
-     }
+    public function isCheckedOut(): bool
+    {
+        return $this->status === 'checked_out';
+    }
 
-     public function isAbandoned(): bool
-     {
-         return $this->status === 'abandoned';
-     }
+    public function isAbandoned(): bool
+    {
+        return $this->status === 'abandoned';
+    }
 
-     public function touchExpiry(int $hours = 24): void
-     {
-         $this->update([
-             'expires_at' => now()->addHours($hours),
-         ]);
-     }
-
-     public function totalAmount(): float
-     {
-         return $this->items->sum(fn ($item) => $item->price * $item->quantity);
-     }
+    public function touchExpiry(int $hours = 24): void
+    {
+        $this->update([
+            'expires_at' => now()->addHours($hours),
+        ]);
+    }
 }

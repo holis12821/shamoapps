@@ -71,7 +71,7 @@ class Handler extends ExceptionHandler
             if ($exception instanceof AccessDeniedHttpException) {
                 return ResponseFormatter::error(
                     null,
-                    'Cannot claim cart multiple times',
+                    $exception->getMessage() ?: 'Access denied',
                     403
                 );
             }

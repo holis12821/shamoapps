@@ -28,26 +28,53 @@ class TransactionItem extends Model
         'quantity' => 'integer',
     ];
 
+    protected $appends = [
+        'subtotal',
+        'formatted'
+    ];
+
+    /* ============================
+     | Accessors
+     |============================ */
+    public function getSubtotalAttribute(): float
+    {
+        return (float) $this->price * $this->quantity;
+    }
+
+    public function getFormattedAttribute(): array
+    {
+        return [
+            'price' => $this->rupiah($this->price),
+            'subtotal' => $this->rupiah($this->subtotal),
+        ];
+    }
+
+    private function rupiah($amount): string
+    {
+        return 'Rp ' . number_format($amount, 0, ',', '.');
+    }
+
     /* ============================
      | Relationships
      |============================ */
 
+    /**
+     * Optional reference to Product.
+     * TransactionItem is a SNAPSHOT, so business logic
+     * must rely on product_name & price, not this relation.
+     */
+
     public function product()
     {
-        return $this->belongsTo(Product::class, 'products_id');
+        return $this->belongsTo(Product::class, 'products_id')
+        ->withDefault([
+            'name' => $this->product_name,
+            'price' => $this->price,
+        ]);
     }
 
     public function transaction()
     {
         return $this->belongsTo(Transaction::class, 'transactions_id');
     }
-
-    /* ============================
-     | Helpers
-     |============================ */
-     
-     public function subtotal(): float
-     {
-         return $this->price * $this->quantity;
-     }
 }

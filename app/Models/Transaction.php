@@ -27,8 +27,36 @@ class Transaction extends Model
 
     protected $casts = [
         'total_price' => 'decimal:2',
-        "shipping_price" => 'decimal:2',
+        'shipping_price' => 'decimal:2',
     ];
+
+    protected $appends = [
+        'grand_total',
+        'formatted'
+    ];
+
+    /* ============================
+     | Accessors
+     |============================ */
+
+    public function getGrandTotalAttribute(): float 
+    {
+        return (float) $this->total_price + (float) $this->shipping_price;
+    }
+     
+    public function getFormattedAttribute(): array
+    {
+        return [
+            'total_price' => $this->rupiah($this->total_price),
+            'shipping_price' => $this->rupiah($this->shipping_price),
+            'grand_total' => $this->rupiah($this->grand_total),
+        ];
+    }
+
+     public function rupiah($amount): string
+    {
+        return 'Rp ' . number_format($amount ?? 0, 0, ',', '.');
+    }
 
     /* ============================
      | Relationships
