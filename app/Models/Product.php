@@ -27,6 +27,25 @@ class Product extends Model
         'price' => 'integer',
     ];
 
+    protected $appends = [
+        'formatted'
+    ];
+
+    /* ============================
+     | Accessors
+     |============================ */
+    public function getFormattedAttribute(): array
+    {
+        return [
+            'price' => $this->rupiah($this->price),
+        ];
+    }
+
+    private function rupiah($amount): string
+    {
+        return 'Rp ' . number_format($amount ?? 0, 0, ',', '.');
+    }
+
     public function galleries()
     {
         return $this->hasMany(ProductGallery::class, 'products_id', 'id');

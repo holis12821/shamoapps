@@ -36,15 +36,22 @@ class ProductController extends Controller
             ->paginate($limit)
             ->withQueryString();
 
-        return ResponseFormatter::success([
-            'items' => $products->items(),
-            'pagination' => [
-                'current_page' => $products->currentPage(),
-                'last_page' => $products->lastPage(),
-                'per_page' => $products->perPage(),
-                'total' => $products->total(),
-                'has_more' => $products->hasMorePages(),
+        return ResponseFormatter::success(
+            [
+                'products' => $products->items(),
+            ],
+            'Product list retrieved successfully',
+            200,
+            [
+                'pagination' => [
+                    'current_page' => $products->currentPage(),
+                    'last_page' => $products->lastPage(),
+                    'per_page' => $products->perPage(),
+                    'total' => $products->total(),
+                    'has_more' => $products->hasMorePages(),
+                ],
+                'filters' => $request->query(),
             ]
-        ], 'Product List retrieved successfully');
+        );
     }
 }

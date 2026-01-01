@@ -9,44 +9,35 @@ use Illuminate\Http\Request;
 
 class ProductCategoryController extends Controller
 {
-    //all method to return all product categories
     public function all(Request $request)
     {
-        $id = $request->input('id');
-        $limit = $request->input('limit', 6);
-        $name = $request->input('name');
-        $show_product = $request->input('show_product');
+        $limit = (int) $request->query('limit', 6);
+        $name  = $request->query('name');
 
-        if ($id) {
-            $category = ProductCategory::with('products')->find($id);
-
-            if ($category) {
-                return ResponseFormatter::success(
-                    $category,
-                    'Data kategory berhasil diambil'
-                );
-            } else {
-                return ResponseFormatter::error(
-                    null,
-                    'Data kategory tidak ditemukan',
-                    404
-                );
-            }
-        }
-
-        $category = ProductCategory::query();
-
-        if ($name) {
-            $category->where('name', 'like', '%' . $name . '%');
-        }
-
-        if ($show_product) {
-            $category->with('products');
-        }
+        $categories = ProductCategory::query()
+            ->when($name, fn ($q) =>
+                $q->where('name', 'like', "%{$name}%")
+            )
+            ->orderBy('created_at', 'desc')
+            ->paginate($limit)
+            ->withQueryString();
 
         return ResponseFormatter::success(
-            $category->paginate($limit),
-            'Data list kategory berhasil diambil'
+            [
+                'categories' => $categories->items(),
+            ],
+            'Product categories retrieved successfully',
+            200,
+            [
+                'pagination' => [
+                    'current_page' => $categories->currentPage(),
+                    'last_page' => $categories->lastPage(),
+                    'per_page' => $categories->perPage(),
+                    'total' => $categories->total(),
+                    'has_more' => $categories->hasMorePages(),
+                ],
+                'filters' => $request->query(),
+            ]
         );
     }
 }

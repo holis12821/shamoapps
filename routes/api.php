@@ -2,12 +2,13 @@
 
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CartController;
-use App\Http\Controllers\API\CheckoutController;
+use App\Http\Controllers\API\CheckoutDetailController;
 use App\Http\Controllers\API\ProductCategoryController;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\ProductDetailController;
 use App\Http\Controllers\API\RefreshTokenController;
-use App\Http\Controllers\API\TransactionController;
+use App\Http\Controllers\API\TransactionDetailController;
+use App\Http\Controllers\API\TransactionsController;
 use App\Http\Controllers\API\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -61,14 +62,15 @@ Route::prefix('order')->middleware([
     'resolvecart',
     'requirecartsecret'
 ])->group(function () {
-    Route::post('/checkout', [CheckoutController::class, 'checkout']);
+    Route::get('/checkout', [CheckoutDetailController::class, 'preview']);
 });
 
-Route::prefix('transactions')->middleware([
+Route::prefix('transaction')->middleware([
     'auth:sanctum',
     'fingerprint',
 ])->group(function () {
-    Route::get('/', [TransactionController::class, 'all']);
+    Route::get('/transactions', [TransactionsController::class, 'index']);
+    Route::get('/transactions/{item}', [TransactionDetailController::class, 'show']);  
 });
 
 /*

@@ -21,9 +21,11 @@ class Cart extends Model
 
     protected $casts = [
         'expires_at' => 'datetime',
+        'total_quantity' => 'integer',
     ];
 
     protected $appends = [
+        'total_quantity',
         'total_amount',
         'formatted'
     ];
@@ -32,11 +34,14 @@ class Cart extends Model
      | Accessors
      |============================ */
 
+     public function getTotalQuantityAttribute(): int
+    {
+        return $this->items->sum('quantity');
+    }
+
     public function getTotalAmountAttribute(): float
     {
-        return $this->items->sum(
-            fn($item) => $item->price * $item->quantity
-        );
+        return $this->items->sum(fn ($item) => $item->subtotal);
     }
 
     /**

@@ -8,7 +8,7 @@ use App\Models\Product;
 
 class ProductDetailController extends Controller
 {
-    public function show($id)
+    public function show(string $id)
     {
         $product = Product::with(['category', 'galleries'])
             ->where('id', $id)
@@ -23,8 +23,10 @@ class ProductDetailController extends Controller
         }
 
         return ResponseFormatter::success(
-            $product,
-            'Detail Product retrieved successfully'
+            [
+                'product' => $product,
+            ],
+            'Detail product berhasil diambil'
         );
     }
 }

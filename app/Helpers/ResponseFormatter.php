@@ -4,30 +4,35 @@ namespace App\Helpers;
 
 class ResponseFormatter
 {
-    protected static $response = [
-        'meta' => [
-            'code' => 200,
-            'status' => 'success',
-            'message' => 'OK',
-        ],
-        'data' => null
-    ];
-
-    public static function success($data = null, $message = null)
-    {
-        self::$response['meta']['message'] = $message;
-        self::$response['data'] = $data;
-
-        return response()->json(self::$response, self::$response['meta']['code']);
+    public static function success(
+        $data = null,
+        string $message = 'Success',
+        int $code = 200,
+        array $meta = []
+    ) {
+        return response()->json([
+            'meta' => array_merge([
+                'code' => $code,
+                'status' => 'success',
+                'message' => $message,
+            ], $meta),
+            'data' => $data,
+        ], $code);
     }
 
-    public static function error($data = null, $message = null, $code = 400)
-    {
-        self::$response['meta']['status'] = 'error';
-        self::$response['meta']['code'] = $code;
-        self::$response['meta']['message'] = $message;
-        self::$response['data'] = $data;
-
-        return response()->json(self::$response, self::$response['meta']['code']);
+    public static function error(
+        $data = null,
+        string $message = 'Error',
+        int $code = 400,
+        array $meta = []
+    ) {
+        return response()->json([
+            'meta' => array_merge([
+                'code' => $code,
+                'status' => 'error',
+                'message' => $message,
+            ], $meta),
+            'data' => $data,
+        ], $code);
     }
 }
