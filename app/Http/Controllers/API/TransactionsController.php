@@ -19,12 +19,16 @@ class TransactionsController extends Controller
     public function index(Request $request)
     {
         $limit  = (int) $request->query('limit', 6);
-        $status = $request->query('status');
+        $status = $request->query('status'); // pending, paid, expired, etc
+        $sort   = $request->query('sort', 'latest'); // latest | oldest
 
         $transactions = Transaction::with(['items.product.galleries'])
-            ->where('users_id', Auth::id()) // User isolation
-            ->when($status, fn($q) => $q->where('status', $status))
-            ->orderBy('created_at', 'desc')
+            ->where('users_id', Auth::id()) // 🔐 User isolation
+            ->when($status, fn ($q) => $q->where('status', $status))
+            ->orderBy(
+                'created_at',
+                $sort === 'oldest' ? 'asc' : 'desc'
+            )
             ->paginate($limit)
             ->withQueryString();
 
@@ -34,6 +38,7 @@ class TransactionsController extends Controller
                     return [
                         'id' => $transaction->id,
                         'status' => $transaction->status,
+                        'order_number' => $transaction->order_number,
                         'total_price' => $transaction->total_price,
                         'shipping_price' => $transaction->shipping_price,
                         'grand_total' => $transaction->grand_total,
@@ -72,6 +77,10 @@ class TransactionsController extends Controller
                     'per_page' => $transactions->perPage(),
                     'total' => $transactions->total(),
                     'has_more' => $transactions->hasMorePages(),
+                ],
+                'filters' => [
+                    'status' => $status,
+                    'sort' => $sort,
                 ],
             ]
         );

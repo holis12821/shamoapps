@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CartController;
+use App\Http\Controllers\API\CheckoutController;
 use App\Http\Controllers\API\CheckoutDetailController;
+use App\Http\Controllers\API\PaymentCallbackController;
 use App\Http\Controllers\API\ProductCategoryController;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\ProductDetailController;
@@ -62,6 +64,7 @@ Route::prefix('order')->middleware([
     'resolvecart',
     'requirecartsecret'
 ])->group(function () {
+    Route::post('/checkout', [CheckoutController::class, 'checkout']);
     Route::get('/checkout', [CheckoutDetailController::class, 'preview']);
 });
 
@@ -70,8 +73,11 @@ Route::prefix('transaction')->middleware([
     'fingerprint',
 ])->group(function () {
     Route::get('/transactions', [TransactionsController::class, 'index']);
-    Route::get('/transactions/{item}', [TransactionDetailController::class, 'show']);  
+    Route::get('/transactions/{order_number}', [TransactionDetailController::class, 'show']);  
 });
+
+// Midtrans webhook (No Auth)
+Route::post('/payments/midtrans/callback', [PaymentCallbackController::class, 'handle']);
 
 /*
 |--------------------------------------------------------------------------

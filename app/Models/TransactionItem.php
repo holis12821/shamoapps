@@ -15,7 +15,6 @@ class TransactionItem extends Model
      * @var array
      */
     protected $fillable = [
-        'users_id',
         'products_id',
         'transactions_id',
         'product_name',

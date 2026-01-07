@@ -12,11 +12,14 @@ class TransactionDetailController extends Controller
     /**
      * Transaction Detail
      */
-    public function show($id)
+    public function show(string $orderNumber)
     {
-        $transaction = Transaction::with(['items.product.galleries', 'user'])
-            ->where('id', $id)
-            ->where('users_id', Auth::id())
+        $transaction = Transaction::with([
+                'items.product.galleries',
+                'payment'
+            ])
+            ->where('users_id', Auth::id()) // User isolation
+            ->where('order_number', $orderNumber)
             ->first();
 
         if (!$transaction) {
@@ -27,41 +30,49 @@ class TransactionDetailController extends Controller
             );
         }
 
-        return ResponseFormatter::success([
-            'id' => $transaction->id,
-            'status' => $transaction->status,
-            'total_price' => $transaction->total_price,
-            'shipping_price' => $transaction->shipping_price,
-            'grand_total' => $transaction->grand_total,
-            'created_at' => $transaction->created_at,
+        return ResponseFormatter::success(
+            [
+                'transaction' => [
+                    'id' => $transaction->id,
+                    'order_number' => $transaction->order_number,
+                    'status' => $transaction->status,
+                    'total_price' => $transaction->total_price,
+                    'shipping_price' => $transaction->shipping_price,
+                    'grand_total' => $transaction->grand_total,
+                    'created_at' => $transaction->created_at,
 
-            'formatted' => $transaction->formatted,
+                    'formatted' => $transaction->formatted,
 
-            'items' => $transaction->items->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'quantity' => $item->quantity,
-                    'price' => $item->price,
-                    'subtotal' => $item->subtotal,
-                    'formatted' => $item->formatted,
+                    'items' => $transaction->items->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'quantity' => $item->quantity,
+                            'price' => $item->price,
+                            'subtotal' => $item->subtotal,
+                            'formatted' => $item->formatted,
 
-                    'product' => [
-                        'id' => $item->product->id,
-                        'name' => $item->product->name,
-                        'price' => $item->product->price,
-                        'formatted' => $item->product->formatted,
-                        'galleries' => $item->product->galleries->map(fn ($g) => [
-                            'url' => $g->url,
-                        ]),
-                    ],
-                ];
-            }),
+                            'product' => [
+                                'id' => $item->product->id,
+                                'name' => $item->product->name,
+                                'formatted' => $item->product->formatted,
+                                'galleries' => $item->product->galleries->map(fn ($g) => [
+                                    'url' => $g->url,
+                                ]),
+                            ],
+                        ];
+                    }),
+                ],
 
-            'user' => [
-                'id' => $transaction->user->id,
-                'name' => $transaction->user->name,
-                'email' => $transaction->user->email,
+                'payment' => $transaction->payment
+                    ? [
+                        'gateway' => 'midtrans',
+                        'payment_type' => $transaction->payment->payment_type,
+                        'status' => $transaction->payment->status,
+                        'payment_url' => $transaction->payment->payment_url,
+                    ]
+                    : null,
             ],
-        ], 'Transaction detail retrieved successfully');
+            'Transaction detail retrieved successfully'
+        );
     }
 }
