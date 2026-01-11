@@ -26,4 +26,16 @@ class CheckoutRequest extends FormRequest
             'address' => ['required', 'string', 'max:255'],
         ];
     }
+
+    /**
+     * Optional: custom error message
+     */
+    public function messages(): array
+    {
+        return [
+            'address.required' => 'Alamat pengiriman wajib diisi',
+            'address.string'   => 'Alamat pengiriman tidak valid',
+            'address.min'      => 'Alamat pengiriman terlalu pendek',
+        ];
+    }
 }

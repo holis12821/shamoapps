@@ -34,7 +34,6 @@ class Transaction extends Model
         'users_id',
         'order_number',
         'address',
-        'payment',
         'total_price',
         'shipping_price',
         'status'

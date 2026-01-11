@@ -2,70 +2,83 @@
 
 namespace App\Services;
 
-use App\Exceptions\ApiException;
 use App\Models\{
     Cart,
     Transaction,
-    TransactionItem,
     User
 };
+use App\Services\Midtrans\MidtransPaymentService;
 use Illuminate\Support\Facades\DB;
 
 class CheckoutService
 {
-    public function checkout(Cart $cart, User $user, string $address): Transaction
+    public function __construct(
+        protected MidtransPaymentService $paymentService
+    ) {}
+
+    public function checkout(Cart $cart, User $user, string $address): array
     {
-        if ($cart->status !== 'active') {
-            throw new ApiException(
-                'Cart cannot be checked out',
-                409
-            );
-        }
-
-        if ($cart->items()->count() === 0) {
-            throw new ApiException(
-                'Cart is empty',
-                422
-            );
-        }
-
         return DB::transaction(function () use ($cart, $user, $address) {
 
             $items = $cart->items;
 
-            $subtotal = $items->sum(
-                fn ($item) => $item->price * $item->quantity
-            );
-
             $shippingPrice = 100; // Implement shipping calculation as needed
-            $total = $subtotal + $shippingPrice;
+            $total = $cart->total_amount + $shippingPrice;
 
             $transaction = Transaction::create([
                 'users_id' => $user->id,
-                'cart_id' => $cart->id,
                 'address' => $address,
                 'total_price' => $total,
                 'shipping_price' => $shippingPrice,
-                'status' => 'PENDING', // or PENDING if using payment
+                'status' => Transaction::STATUS_PENDING, // or PENDING if using payment
             ]);
 
+            /** 2. Create Transaction Items */
             foreach ($items as $item) {
-                TransactionItem::create([
-                    'transactions_id' => $transaction->id,
-                    'users_id' => $user->id,
-                    'products_id' => $item->product_id,
+                $transaction->items()->create([
+                    'products_id'  => $item->product_id,
                     'product_name' => $item->product_name,
-                    'price' => $item->price,
-                    'quantity' => $item->quantity,
+                    'price'        => $item->price,
+                    'quantity'     => $item->quantity,
                 ]);
             }
 
+            $transaction->load('items');
+
+            /** 3. Create Midtrans Snap */
+            $payment = $this->paymentService->createSnapPayment($transaction);
+
+            /** 4. Invalidate Cart */
             $cart->update([
                 'status' => 'checked_out',
                 'secret_key' => '',
             ]);
 
-            return $transaction;
+            /** 5. Return API Payload */
+            return $this->formatResponse($transaction, $payment);
         });
+    }
+
+    private function formatResponse(Transaction $transaction, $payment): array
+    {
+        return [
+            'transaction' => [
+                'order_number'   => $transaction->order_number,
+                'items'          => $transaction->items->map(fn($item) => [
+                    'products_id'  => $item->products_id,
+                    'product_name' => $item->product_name,
+                    'price'        => (int) $item->price,
+                    'quantity'     => (int) $item->quantity,
+                ]),
+                'total_price'    => (int) $transaction->total_price,
+                'shipping_price' => (int) $transaction->shipping_price,
+                'grand_total'    => (int) $transaction->grand_total,
+                'status'         => $transaction->status,
+            ],
+            'payment' => [
+                'status'       => $payment->status,
+                'payment_url'  => $payment->payment_url,
+            ],
+        ];
     }
 }

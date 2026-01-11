@@ -35,9 +35,21 @@ class Handler extends ExceptionHandler
      */
     public function register(): void
     {
-        $this->reportable(function (Throwable $e) {
-            //
-        });
+        $this->renderable(function (CartNotActiveException $e) {
+        return ResponseFormatter::error(
+            null,
+            $e->getMessage(),
+            404
+        );
+    });
+
+    $this->renderable(function (CartEmptyException $e) {
+        return ResponseFormatter::error(
+            null,
+            $e->getMessage(),
+            422
+        );
+    });
     }
 
     public function render($request, Throwable $exception)
