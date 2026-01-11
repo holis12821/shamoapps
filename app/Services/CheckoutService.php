@@ -7,13 +7,13 @@ use App\Models\{
     Transaction,
     User
 };
-use App\Services\Midtrans\MidtransPaymentService;
+use App\Services\Midtrans\Payment\MidtransPaymentService as PaymentMidtransService;
 use Illuminate\Support\Facades\DB;
 
 class CheckoutService
 {
     public function __construct(
-        protected MidtransPaymentService $paymentService
+        protected PaymentMidtransService $paymentService
     ) {}
 
     public function checkout(Cart $cart, User $user, string $address): array
@@ -63,21 +63,30 @@ class CheckoutService
     {
         return [
             'transaction' => [
-                'order_number'   => $transaction->order_number,
-                'items'          => $transaction->items->map(fn($item) => [
-                    'products_id'  => $item->products_id,
-                    'product_name' => $item->product_name,
-                    'price'        => (int) $item->price,
-                    'quantity'     => (int) $item->quantity,
-                ]),
-                'total_price'    => (int) $transaction->total_price,
-                'shipping_price' => (int) $transaction->shipping_price,
-                'grand_total'    => (int) $transaction->grand_total,
+                'order_number' => $transaction->order_number,
+
+                'items' => $transaction->items->map(function ($item) {
+                    return [
+                        'products_id'  => $item->products_id,
+                        'product_name' => $item->product_name,
+                        'price'        => $item->price,
+                        'quantity'     => $item->quantity,
+                        'subtotal'     => $item->subtotal,
+                        'formatted'    => $item->formatted,
+                    ];
+                }),
+
+                'total_price'    => $transaction->total_price,
+                'shipping_price' => $transaction->shipping_price,
+                'grand_total'    => $transaction->grand_total,
                 'status'         => $transaction->status,
+
+                'formatted' => $transaction->formatted,
             ],
+
             'payment' => [
-                'status'       => $payment->status,
-                'payment_url'  => $payment->payment_url,
+                'status'      => $payment->status,
+                'payment_url' => $payment->payment_url,
             ],
         ];
     }

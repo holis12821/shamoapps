@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Midtrans;
+namespace App\Services\Midtrans\Payment;
 
 use App\Models\Payment;
 use App\Models\Transaction;

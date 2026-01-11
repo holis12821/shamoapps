@@ -29,9 +29,6 @@ class PaymentCallbackController extends Controller
          * Otherwise Midtrans will retry
          */
 
-        return ResponseFormatter::success(
-            null,
-            'Callback processed successfully'
-        );
+        return response()->json(['status' => 'ok']);
     }
 }

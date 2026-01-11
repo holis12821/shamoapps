@@ -31,7 +31,7 @@ class CheckoutController extends Controller
 
         $payload = $checkoutService->checkout(
             cart: $cart,
-            user: $user->id,
+            user: $user,
             address: $request->address
         );
 

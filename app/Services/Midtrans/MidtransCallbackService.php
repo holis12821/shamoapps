@@ -8,61 +8,96 @@ use App\Exceptions\ApiException;
 
 class MidtransCallbackService
 {
-   public function handle(array $payload): void
+    public function handle(array $payload): void
     {
+        $this->validatePayload($payload);
         $this->verifySignature($payload);
 
-        $transaction = $this->getTransaction($payload['order_id'] ?? null);
-
-        $payment = $this->getPayment($transaction);
+        $transaction = $this->getTransaction($payload['order_id']);
+        $payment     = $this->getPayment($transaction);
 
         $this->ensureIdempotent($payment);
 
         $this->updatePayment($payment, $payload);
-
         $this->updateTransaction($transaction, $payload);
 
-        Log::info('Midtrans Callback Processed', [
+        Log::info('Midtrans Callback SUCCESS', [
             'order_number' => $transaction->order_number,
-            'status' => $payload['transaction_status'] ?? null,
+            'status'       => $payload['transaction_status'],
         ]);
     }
 
-    /* ============================================================
-     | Signature Validation
-     |============================================================ */
+    /* =====================================================
+     | BASIC PAYLOAD VALIDATION
+     |===================================================== */
+    private function validatePayload(array $payload): void
+    {
+        $required = [
+            'order_id',
+            'status_code',
+            'gross_amount',
+            'transaction_status',
+            'signature_key',
+        ];
+
+        foreach ($required as $field) {
+            if (empty($payload[$field])) {
+                throw new ApiException(
+                    "Missing payload field: {$field}",
+                    422
+                );
+            }
+        }
+    }
+
+    /* =====================================================
+     | SIGNATURE VERIFICATION (WAJIB TEPAT)
+     |===================================================== */
     private function verifySignature(array $payload): void
     {
         $serverKey = config('midtrans.server_key');
 
-        $orderId     = (string) ($payload['order_id'] ?? '');
-        $statusCode  = (string) ($payload['status_code'] ?? '');
-        $grossAmount = (string) ($payload['gross_amount'] ?? '');
-        $signature   = (string) ($payload['signature_key'] ?? '');
+        if (! $serverKey) {
+            throw new ApiException(
+                'Midtrans server key not configured',
+                500
+            );
+        }
 
-        $raw = $orderId . $statusCode . $grossAmount . $serverKey;
-        $expected = hash('sha512', $raw);
+        $rawString =
+            $payload['order_id'] .
+            $payload['status_code'] .
+            $payload['gross_amount'] .
+            $serverKey;
 
-        if (! hash_equals($expected, $signature)) {
+        $expected = hash('sha512', $rawString);
+
+        if (! hash_equals($expected, $payload['signature_key'])) {
             Log::warning('Midtrans Invalid Signature', [
-                'raw' => $raw,
+                'raw'      => $rawString,
                 'expected' => $expected,
-                'received' => $signature,
+                'received' => $payload['signature_key'],
             ]);
 
             throw new ApiException('Invalid signature', 403);
         }
     }
 
-    /* ============================================================
-     | Transaction & Payment Resolver
-     |============================================================ */
-    private function getTransaction(?string $orderNumber): Transaction
+    /* =====================================================
+     | RESOLVE TRANSACTION & PAYMENT
+     |===================================================== */
+    private function getTransaction(string $orderNumber): Transaction
     {
-        $transaction = Transaction::where('order_number', $orderNumber)->first();
+        $transaction = Transaction::where(
+            'order_number',
+            $orderNumber
+        )->first();
 
         if (! $transaction) {
-            throw new ApiException('Transaction not found', 404);
+            throw new ApiException(
+                'Transaction not found',
+                404
+            );
         }
 
         return $transaction;
@@ -70,36 +105,44 @@ class MidtransCallbackService
 
     private function getPayment(Transaction $transaction)
     {
-        $payment = $transaction->payment;
-
-        if (! $payment) {
-            throw new ApiException('Payment not found', 404);
+        if (! $transaction->payment) {
+            throw new ApiException(
+                'Payment not found',
+                404
+            );
         }
 
-        return $payment;
+        return $transaction->payment;
     }
 
-    /* ============================================================
-     | Idempotency Guard
-     |============================================================ */
+    /* =====================================================
+     | IDEMPOTENCY (ANTI DOUBLE CALLBACK)
+     |===================================================== */
     private function ensureIdempotent($payment): void
     {
         if ($payment->status === 'paid') {
-            Log::info('Midtrans Callback Ignored (Already Paid)');
-            exit; // STOP — Midtrans retry safe
+            Log::info(
+                'Midtrans Callback IGNORED (Already Paid)',
+                ['payment_id' => $payment->id]
+            );
+
+            throw new ApiException(
+                'Callback already processed',
+                200
+            );
         }
     }
 
-    /* ============================================================
-     | Payment Update
-     |============================================================ */
+    /* =====================================================
+     | UPDATE PAYMENT
+     |===================================================== */
     private function updatePayment($payment, array $payload): void
     {
         $payment->update([
             'midtrans_transaction_id' => $payload['transaction_id'] ?? null,
             'payment_type'            => $payload['payment_type'] ?? null,
             'status'                  => $this->mapPaymentStatus(
-                $payload['transaction_status'] ?? 'pending'
+                $payload['transaction_status']
             ),
             'fraud_status'            => $payload['fraud_status'] ?? null,
             'transaction_time'        => $payload['transaction_time'] ?? null,
@@ -108,44 +151,49 @@ class MidtransCallbackService
         ]);
     }
 
-    /* ============================================================
-     | Transaction Update
-     |============================================================ */
-    private function updateTransaction(Transaction $transaction, array $payload): void
-    {
-        match ($payload['transaction_status'] ?? null) {
-            'capture' => $this->handleCapture($transaction, $payload),
-
+    /* =====================================================
+     | UPDATE TRANSACTION
+     |===================================================== */
+    private function updateTransaction(
+        Transaction $transaction,
+        array $payload
+    ): void {
+        match ($payload['transaction_status']) {
+            'capture'    => $this->handleCapture($transaction, $payload),
             'settlement' => $transaction->update([
-                'status' => Transaction::STATUS_PAID,
+                'status' => Transaction::STATUS_PAID
             ]),
-
-            'pending' => $transaction->update([
-                'status' => Transaction::STATUS_PENDING,
+            'pending'    => $transaction->update([
+                'status' => Transaction::STATUS_PENDING
             ]),
-
-            'expire', 'cancel', 'deny' => $transaction->update([
-                'status' => Transaction::STATUS_FAILED,
+            'expire',
+            'cancel',
+            'deny'       => $transaction->update([
+                'status' => Transaction::STATUS_FAILED
             ]),
-
-            'refund' => $transaction->update([
-                'status' => Transaction::STATUS_REFUNDED,
+            'refund'     => $transaction->update([
+                'status' => Transaction::STATUS_REFUNDED
             ]),
-
-            default => null,
+            default      => null,
         };
     }
 
-    private function handleCapture(Transaction $transaction, array $payload): void
-    {
+    private function handleCapture(
+        Transaction $transaction,
+        array $payload
+    ): void {
         if (($payload['payment_type'] ?? '') !== 'credit_card') {
             return;
         }
 
         if (($payload['fraud_status'] ?? '') === 'challenge') {
-            $transaction->update(['status' => Transaction::STATUS_PENDING]);
+            $transaction->update([
+                'status' => Transaction::STATUS_PENDING
+            ]);
         } else {
-            $transaction->update(['status' => Transaction::STATUS_PAID]);
+            $transaction->update([
+                'status' => Transaction::STATUS_PAID
+            ]);
         }
     }
 
