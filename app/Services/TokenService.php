@@ -25,7 +25,7 @@ class TokenService
     public static function createAccessToken(
         User $user,
         Request $request,
-        int $minutes = 15
+        int $minutes = 30
     ): string {
         return $user->createToken(
             name: 'access-token',

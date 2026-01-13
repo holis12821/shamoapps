@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\Cart\CartAlreadyCheckedOutException;
 use App\Models\Cart;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -9,76 +10,79 @@ use Illuminate\Support\Facades\DB;
 class CartMergeService
 {
     /**
-     * Claim / merge anonymous cart into user cart
-     *
-     * Flow:
-     * 1. User logs in
-     * 2. Client sends X-CART-ID + X-CART-SECRET
-     * 3. Middleware validates cart & secret
-     * 4. This service is called
+     * Idempotent cart claim / merge
      */
-
-    public function merge(Cart $incomingCart, User $user): void
+    public function claim(Cart $incomingCart, User $user): Cart
     {
-        // Merge items from incoming cart to user cart
-        DB::transaction(function () use ($incomingCart, $user) {
+        return DB::transaction(function () use ($incomingCart, $user) {
+
+            $incomingCart = Cart::query()
+                ->whereKey($incomingCart->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
             /**
-             * Case 1 Get user's active cart (excluding incoming cart)
+             * 1. TERMINAL STATE → STOP
              */
+            if ($incomingCart->status === 'checkout_out') {
+                throw new CartAlreadyCheckedOutException();
+            }
+
+            /**
+             * 2. EXPIRED → May be reset
+             */
+            if ($incomingCart->status === 'expired') {
+                $incomingCart->update(['status' => 'active']);
+                $incomingCart->refresh();
+            }
+
+            /**
+             * 3. IDEMPOTENT CHECK
+             */
+            if ($incomingCart->user_id === $user->id) {
+                return $incomingCart;
+            }
+
+            // User active cart
             $userCart = Cart::query()
                 ->where('user_id', $user->id)
                 ->where('status', 'active')
                 ->where('id', '!=', $incomingCart->id)
+                ->lockForUpdate()
                 ->first();
 
-            /**
-             * 2. CASE: User has NO active cart
-             * → claim incoming cart directly
-             */
-
-            if (!$userCart) {
-                // No existing user cart, just assign ownership
+            // No existing cart → claim directly
+            if (! $userCart) {
                 $incomingCart->update([
                     'user_id' => $user->id,
                 ]);
 
-                return;
+                return $incomingCart->fresh();
             }
 
-            /**
-             * 3. CASE: Incoming cart already belongs to user
-             * → nothing to do
-             */
-            if ($incomingCart->user_id === $user->id) {
-                return;
-            }
-
-            /**
-             * CASE 4:
-             * User has an active cart → merge items
-             */
-
+            // Merge items
             foreach ($incomingCart->items as $item) {
-                $userCart->items()->updateOrCreate(
-                    [
-                        'product_id' => $item->product_id,
-                    ],
-                    [
-                        // snapshots are retained
-                        'product_name' => $item->product_name,
-                        'price' => $item->price,
+                $existingItem = $userCart->items()
+                    ->where('product_id', $item->product_id)
+                    ->first();
 
-                        'quantity' => DB::raw('quantity + ' . (int) $item->quantity),
-                    ]
-                );
+                if ($existingItem) {
+                    $existingItem->increment('quantity', $item->quantity);
+                } else {
+                    $userCart->items()->create([
+                        'product_id'   => $item->product_id,
+                        'product_name' => $item->product_name,
+                        'price'        => $item->price,
+                        'quantity'     => $item->quantity,
+                    ]);
+                }
             }
 
-            /**
-             * 5. Delete incoming cart (anonymous)
-             */
+            // Cleanup guest cart
             $incomingCart->items()->delete();
             $incomingCart->delete();
+
+            return $userCart->fresh();
         });
     }
 }

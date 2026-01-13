@@ -2,10 +2,10 @@
 
 namespace App\Exceptions;
 
-use Exception;
-use RuntimeException;
-
-class CartNotActiveException extends CheckoutException
+class CartNotActiveException extends ApiException
 {
-    protected $message = 'Cart not found or already checked out';
+    public function __construct()
+    {
+        return parent::__construct('Cart not found or already checked out', 400);
+    }
 }

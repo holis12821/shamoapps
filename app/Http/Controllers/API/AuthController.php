@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use App\Helpers\ResponseFormatter;
 use App\Http\Controllers\Controller;
 use App\Services\TokenService;
+use App\Services\CartService;
+use App\Services\CartMergeService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
@@ -85,6 +87,21 @@ class AuthController extends Controller
 
         /** @var User $user */
         $user = Auth::user();
+
+        /**
+         * CLAIM GUEST CART (IF EXISTS)
+         * - Guest addToCart → login → cart remains
+         * - Login without cart → do not create new cart
+         * - User has old cart → merge
+         */
+        $cartService = app(CartService::class);
+        $cartMergeService = app(CartMergeService::class);
+
+        $guestCart = $cartService->getGuestCart();
+
+        if ($guestCart && $guestCart->items()->exists()) {
+            $cartMergeService->claim($guestCart, $user);
+        }
 
         // Create ACCESS token (short-lived)
         $accessToken = TokenService::createAccessToken(

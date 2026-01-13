@@ -62,7 +62,6 @@ Route::prefix('order')->middleware([
     'auth:sanctum',
     'fingerprint',
     'resolvecart',
-    'requirecartsecret'
 ])->group(function () {
     Route::post('/checkout', [CheckoutController::class, 'checkout']);
     Route::get('/checkout', [CheckoutDetailController::class, 'preview']);
@@ -104,11 +103,9 @@ Route::prefix('cart')->group(function () {
      * Header: X-CART-ID
      */
 
-    Route::middleware('resolvecart')->group(function () {
-        Route::post('/items', [CartController::class, 'addItem']);
-        Route::put('/items/{item}', [CartController::class, 'updateItem']);
-        Route::delete('/items/{item}', [CartController::class, 'removeItem']);
-    });
+    Route::middleware('resolvecart')->post('/items', [CartController::class, 'addItem']);
+    Route::middleware(['resolvecart', 'requirecartsecret'])->put('/items/{item}', [CartController::class, 'updateItem']);
+    Route::middleware(['resolvecart', 'requirecartsecret'])->delete('/items/{item}', [CartController::class, 'removeItem']);
 
     /**
      * Sensitive operations
@@ -120,7 +117,6 @@ Route::prefix('cart')->group(function () {
         'auth:sanctum',
         'fingerprint',
         'resolvecart',
-        'requirecartsecret'
     ])->group(function () {
         Route::post('/claim', [CartController::class, 'claim']);
     });

@@ -31,51 +31,51 @@ class CartController extends Controller
     }
 
     public function show(Request $request)
-{
-    $cart = $request->get('cart');
+    {
+        $cart = $request->get('cart');
 
-    if (!$cart) {
-        return ResponseFormatter::error(
-            null,
-            'Cart not found',
-            404
-        );
+        if (!$cart) {
+            return ResponseFormatter::error(
+                null,
+                'Cart not found',
+                404
+            );
+        }
+
+        // Load related items and products with galleries
+        $cart->load([
+            'items.product.galleries'
+        ]);
+
+        return ResponseFormatter::success([
+            'cart' => [
+                'id' => $cart->id,
+                'status' => $cart->status,
+                'total_quantity' => $cart->total_quantity,
+                'total_amount' => $cart->total_amount,
+                'formatted' => $cart->formatted,
+            ],
+            'items' => $cart->items->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'quantity' => $item->quantity,
+                    'subtotal' => $item->subtotal,
+                    'formatted' => $item->formatted,
+                    'product' => [
+                        'id' => $item->product->id,
+                        'name' => $item->product->name,
+                        'price' => $item->product->price,
+                        'formatted' => $item->product->formatted,
+                        'galleries' => $item->product->galleries->map(function ($gallery) {
+                            return [
+                                'url' => $gallery->url,
+                            ];
+                        }),
+                    ],
+                ];
+            }),
+        ], 'Cart retrieved successfully');
     }
-
-    // Load related items and products with galleries
-    $cart->load([
-        'items.product.galleries'
-    ]);
-
-    return ResponseFormatter::success([
-        'cart' => [
-            'id' => $cart->id,
-            'status' => $cart->status,
-            'total_quantity' => $cart->total_quantity,
-            'total_amount' => $cart->total_amount,
-            'formatted' => $cart->formatted,
-        ],
-        'items' => $cart->items->map(function ($item) {
-            return [
-                'id' => $item->id,
-                'quantity' => $item->quantity,
-                'subtotal' => $item->subtotal,
-                'formatted' => $item->formatted,
-                'product' => [
-                    'id' => $item->product->id,
-                    'name' => $item->product->name,
-                    'price' => $item->product->price,
-                    'formatted' => $item->product->formatted,
-                    'galleries' => $item->product->galleries->map(function ($gallery) {
-                        return [
-                            'url' => $gallery->url,
-                        ];
-                    }),
-                ],
-            ];
-        }),
-    ], 'Cart retrieved successfully');
-}
 
     public function addItem(
         AddCartItemRequest $request,
@@ -178,7 +178,7 @@ class CartController extends Controller
             );
         }
 
-        $service->merge(
+        $service->claim(
             $cart,
             $user
         );

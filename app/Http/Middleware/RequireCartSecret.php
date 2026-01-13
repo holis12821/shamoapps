@@ -16,21 +16,19 @@ class RequireCartSecret
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $cart = $request->get('cart');
+        $cart = $request->attributes->get('cart');
         $secret = $request->header('X-CART-SECRET');
 
-        if (!$secret) {
-            throw new ApiException('Cart secret header missing', 400);
+        if (! $cart || ! $secret) {
+            throw new ApiException('Unauthorized cart access', 401);
         }
 
-        if (!$cart || !$cart->secret_key) {
-            throw new ApiException('Cart already finalized', 403);
+        if (! hash_equals(
+            (string) $cart->secret_key,
+            (string) $secret
+        )) {
+            throw new ApiException('Unauthorized cart access', 401);
         }
-
-        if (!hash_equals($cart->secret_key, $secret)) {
-            throw new ApiException('Invalid cart secret', 403);
-        }
-
 
         return $next($request);
     }

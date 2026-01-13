@@ -4,7 +4,10 @@ namespace App\Exceptions;
 
 use Exception;
 
-class CartEmptyException extends CheckoutException
+class CartEmptyException extends ApiException
 {
-    protected $message = 'Cart Empty';
+    public function __construct()
+    {
+        return parent::__construct('Cart Empty', 400);
+    }
 }

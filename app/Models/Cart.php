@@ -10,11 +10,20 @@ class Cart extends Model
 {
     use HasFactory;
 
+    /* ============================
+     | Status Constants
+     |============================ */
+    public const STATUS_ACTIVE       = 'active';
+    public const STATUS_CHECKED_OUT  = 'checked_out';
+    public const STATUS_EXPIRED      = 'expired';
+    public const STATUS_ABANDONED    = 'abandoned';
+
     protected $fillable = [
         'public_id',
         'secret_key',
         'user_id',
         'status',
+        'order_number',
         'expires_at',
         'device_fingerprint',
     ];
